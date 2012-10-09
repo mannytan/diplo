@@ -15,21 +15,27 @@ DIPLO.Diplo3D = function(name) {
 
 	// vars specific to Pinecone
 	this.sphere = null;
+	this.sphereSegmentsWidth = 30;
+	this.sphereSegmentsHeight = 15;
+
 	this.originPoints = null;
 	this.activePoints = null;
-	this.rotationAxis = null;
 
+	// ROTATION AXIS
 	this.rotationVector = null;
 	this.centerVector = null;
 	this.vectorLine = null;
 	this.offsetRotationVector = null;
+
+	this.count = 0;
+
+	this.plotters = [];
 
 	this.init = function() {
 
 		this.traceFunction("init");
 
 		return this;
-
 	};
 
 	this.createForegroundElements = function() {
@@ -39,7 +45,8 @@ DIPLO.Diplo3D = function(name) {
 			faceNormal,
 			geometry,
 			vertex,
-			material;
+			material,
+			plotter;
 
 		this.originPoints = [];
 		this.activePoints = [];
@@ -47,12 +54,11 @@ DIPLO.Diplo3D = function(name) {
 		// VECTOR
 		this.rotationVectorNormal = new THREE.Vector3();
 		this.rotationVector = new THREE.Vector3(0,50,50);
-		this.centerVector = new THREE.Vector3(0,0,50);
+		this.centerVector = new THREE.Vector3(180,0,50);
 		this.offsetRotationVector = new THREE.Vector3();
 
 		geometry = new THREE.Geometry();
 		geometry.vertices.push(
-			new THREE.Vector3(),
 			this.centerVector.clone(),
 			this.rotationVector.clone()
 		);
@@ -61,12 +67,14 @@ DIPLO.Diplo3D = function(name) {
 		this.base.add(this.vectorLine);
 
 		// BASE SPHERE
-		geometry =  new THREE.SphereGeometry( 100 ,40,20);
+		geometry =  new THREE.SphereGeometry( 200, this.sphereSegmentsWidth, this.sphereSegmentsHeight );
 		material = new THREE.MeshBasicMaterial({color:0x000000, opacity:0.125, wireframe:true});
 		this.sphere = new THREE.Mesh( geometry, material);
 		this.base.add(this.sphere);
 
-		this.total = this.sphere.geometry.vertices.length;
+		//this.total = this.sphere.geometry.vertices.length;
+		
+		this.total = (this.sphereSegmentsWidth + 1) * (this.sphereSegmentsHeight + 1);
 
 		// PARTICLES
 		for(i=0;i<this.total;i++){
@@ -84,6 +92,9 @@ DIPLO.Diplo3D = function(name) {
 			this.activePoints.push(particle);
 
 			this.base.add(particle);
+
+			plotter = {}
+			this.plotters.push(plotter);
 		}
 
 		for(i=0;i<this.total;i++){
@@ -92,17 +103,23 @@ DIPLO.Diplo3D = function(name) {
 		}
 
 		return this;
-
 	};
 
 	this.parse = function() {
 
+		/*
+		this.count+=.01;
+		var percentage = this.count*Math.PI*2;
+		this.rotationVector.x = Math.cos(percentage)*100;
+		this.rotationVector.y = Math.sin(percentage)*100;
+		*/
+
 		var originParticle, activeParticle, tVector,rotationAmount;
 		var currentFoldAmount = DIPLO.Params.currentFoldAmount;
 
-		this.vectorLine.geometry.vertices[1].copy(this.centerVector);
+		this.vectorLine.geometry.vertices[0].copy(this.centerVector);
 		this.offsetRotationVector.add(this.rotationVector,this.centerVector);
-		this.vectorLine.geometry.vertices[2].copy(this.offsetRotationVector);
+		this.vectorLine.geometry.vertices[1].copy(this.offsetRotationVector);
 
 		this.rotationVectorNormal.copy(this.rotationVector);
 		this.rotationVectorNormal.normalize();
@@ -111,17 +128,26 @@ DIPLO.Diplo3D = function(name) {
 			originParticle = this.originPoints[i];
 			activeParticle = this.activePoints[i];
 
-			// offset to center
 			originParticle.position.subSelf(this.centerVector);
 			activeParticle.position.subSelf(this.centerVector);
 
 			tVector = this.rotateAroundAxis(originParticle.position, this.rotationVectorNormal, currentFoldAmount*Math.PI*2);
 			activeParticle.position.copy(tVector);
 			
-			// reset to center
 			originParticle.position.addSelf(this.centerVector);
 			activeParticle.position.addSelf(this.centerVector);
 		}
+
+
+d = ((a-b)*(ELASTICITY +tempFloat))+b;
+e = b-(b-c)-(b-d);
+f = e-((b-e)*SMOOTHNESS + tempFloat);
+
+a = b[i-1];
+b = e;
+c = f;
+
+
 
 		return this;
 	};
@@ -136,12 +162,14 @@ DIPLO.Diplo3D = function(name) {
 			this.originPoints[i].geometry.vertices.verticesNeedUpdate = true;
 		}
 		
-		this.vectorLine.geometry.__dirtyVertices = true;
+		this.vectorLine.geometry.verticesNeedUpdate = true;
 
 		this.sphere.geometry.verticesNeedUpdate = true;
 
 		this.trackball.update();
 		this.renderer.render(this.scene, this.camera);
+
+		return this;
 	};
 
 };

@@ -64,13 +64,11 @@ DIPLO.Main = function(name) {
 	};
 
 	this.createGui = function() {
+
 		DIPLO.Params = {
 			speed: 4.0,
 			orbitSpeed: 0.0001,
-			perlinSize: 2,
-			perlinSpeed: .01,
-			perlinRange: 100,
-			currentFoldAmount: 0.0,
+			currentFoldAmount: 0.0001,
 		};
 
 		this.gui = new dat.GUI({
@@ -78,14 +76,12 @@ DIPLO.Main = function(name) {
 			autoPlace: false
 		});
 		this.guiContainer = this.gui.domElement;
-
-		this.gui.add(DIPLO.Params, 'perlinSize', 0.0, 10).step(0.0005);
-		this.gui.add(DIPLO.Params, 'perlinSpeed', -0.1, 0.1).step(0.0005);
-		this.gui.add(DIPLO.Params, 'perlinRange', 0, 300).step(1);
-		this.gui.add(DIPLO.Params, 'currentFoldAmount', 0.0, 1.0).step(0.0005);
-
+		this.gui.add(DIPLO.Params, 'currentFoldAmount', -1.0, 1.0).step(0.0005);
 		this.guiContainer = document.getElementById('guiContainer');
 		this.guiContainer.appendChild(this.gui.domElement);
+
+		return this;
+
 	};
 
 	this.update = function() {
@@ -93,9 +89,11 @@ DIPLO.Main = function(name) {
 		this.diplo3D.parse();
 		this.diplo3D.draw();
 
+		return this;
 	};
 
 	this.loop = function() {
+
 		this.stats.update();
 		this.update();
 		if (this.isPaused) {
@@ -104,24 +102,13 @@ DIPLO.Main = function(name) {
 		requestAnimationFrame(function() {
 			scope.loop();
 		});
-		return this;
-	};
 
-	this.slider = function(gui, startValue, endValue, delayer) {
-		var obj = {
-			time: delayer,
-			duration: DIPLO.Params.speed,
-			effect: 'easeOut',
-			start: startValue,
-			stop: endValue,
-			onFrame: function(element, state) {
-				gui.setValue(state.value);
-			}
-		};
-		return obj;
+		return this;
+
 	};
 
 	this.perspectiveToggle = function() {
+
 		if (DIPLO.Params.perspective === false) {
 			DIPLO.Params.perspective = true;
 			this.diplo3D.toPerspective();
@@ -129,9 +116,12 @@ DIPLO.Main = function(name) {
 			DIPLO.Params.perspective = false;
 			this.diplo3D.toOrthographic();
 		}
+
+		return this;
 	};
 
 	this.pausePlayToggle = function() {
+
 		if (scope.isPaused) {
 			this.play();
 		} else {
@@ -140,20 +130,25 @@ DIPLO.Main = function(name) {
 	};
 
 	this.play = function() {
+
 		this.isPaused = false;
 		this.diplo3D.enableTrackBall();
 		this.loop();
+
 		return this;
 	};
 
 	this.pause = function() {
+
 		this.isPaused = true;
 		this.diplo3D.disableTrackBall();
 		if (this.source) this.source.disconnect();
 
+		return this;
 	};
 
 	this.createListeners = function() {
+
 		window.addEventListener('keydown', function() {
 			scope.keyDown(event);
 		}, false);
@@ -162,22 +157,27 @@ DIPLO.Main = function(name) {
 			scope.resize(event);
 		}, false);
 
+		return this;
 	};
 
 	this.keyDown = function(event) {
+
 		if (event.keyCode === 32) {
 			this.pausePlayToggle();
 		}
+
+		return this;
 	};
 
 	this.resize = function() {
+
 		this.stageWidth = window.innerWidth - this.guiWidth;
 		this.stageHeight = window.innerHeight;
 
 		this.diplo3D.setDimensions(this.stageWidth,this.stageHeight);
 		this.diplo3D.resize();
 
-
+		return this;
 	};
 
 };
