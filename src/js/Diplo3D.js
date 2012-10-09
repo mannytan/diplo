@@ -20,6 +20,8 @@ DIPLO.Diplo3D = function(name) {
 
 	this.originPoints = null;
 	this.activePoints = null;
+	this.plotterPoints = null;
+	this.pointData = null;
 
 	// ROTATION AXIS
 	this.rotationVector = null;
@@ -40,7 +42,7 @@ DIPLO.Diplo3D = function(name) {
 
 	this.createForegroundElements = function() {
 
-		var i,
+		var i, x, y, z, 
 			point,
 			faceNormal,
 			geometry,
@@ -50,11 +52,15 @@ DIPLO.Diplo3D = function(name) {
 
 		this.originPoints = [];
 		this.activePoints = [];
+		this.plotterPoints = [];
+		this.pointData = [];
 
 		// VECTOR
 		this.rotationVectorNormal = new THREE.Vector3();
-		this.rotationVector = new THREE.Vector3(0,50,50);
-		this.centerVector = new THREE.Vector3(180,0,50);
+		this.rotationVector = new THREE.Vector3(Math.random(),Math.random(),Math.random());
+		this.rotationVector.normalize();
+		this.rotationVector.multiplyScalar(100);
+		this.centerVector = new THREE.Vector3(Math.random()*90,Math.random()*90,0);
 		this.offsetRotationVector = new THREE.Vector3();
 
 		geometry = new THREE.Geometry();
@@ -67,10 +73,11 @@ DIPLO.Diplo3D = function(name) {
 		this.base.add(this.vectorLine);
 
 		// BASE SPHERE
-		geometry =  new THREE.SphereGeometry( 200, this.sphereSegmentsWidth, this.sphereSegmentsHeight );
+		geometry =  new THREE.SphereGeometry( 100, this.sphereSegmentsWidth, this.sphereSegmentsHeight );
 		material = new THREE.MeshBasicMaterial({color:0x000000, opacity:0.125, wireframe:true});
 		this.sphere = new THREE.Mesh( geometry, material);
 		this.base.add(this.sphere);
+
 
 		//this.total = this.sphere.geometry.vertices.length;
 		
@@ -82,7 +89,7 @@ DIPLO.Diplo3D = function(name) {
 			vertex = new THREE.Vector3();
 			geometry.vertices.push( vertex );
 
-			material = new THREE.ParticleBasicMaterial( { size: 4,color: 0xFF0000	} );
+			material = new THREE.ParticleBasicMaterial( { size: 4,color: 0x00FF00	} );
 			particle = new THREE.ParticleSystem( geometry, material );
 			this.originPoints.push(particle);
 			// this.base.add(particle);
@@ -90,32 +97,55 @@ DIPLO.Diplo3D = function(name) {
 			material = new THREE.ParticleBasicMaterial( { size: 4,color: 0x0000FF	} );
 			particle = new THREE.ParticleSystem( geometry, material );
 			this.activePoints.push(particle);
+			// this.base.add(particle);
 
-			this.base.add(particle);
+			material = new THREE.ParticleBasicMaterial( { size: 4,color: 0xFF0000	} );
+			particle = new THREE.ParticleSystem( geometry, material );
+			this.plotterPoints.push(particle);
+			// this.base.add(particle);
 
-			plotter = {}
-			this.plotters.push(plotter);
+			this.pointData.push({ distance:1, maxDistance:1.0, minDistance:1.0, normal:0.0, inverseNormal:1.0 });
+
 		}
 
 		for(i=0;i<this.total;i++){
 			this.originPoints[i].position.copy(this.sphere.geometry.vertices[i]);
 			this.activePoints[i].position.copy(this.sphere.geometry.vertices[i]);
+			this.plotterPoints[i].position.copy(this.sphere.geometry.vertices[i]);
+			
+			plotter = { 
+				a:this.sphere.geometry.vertices[i].clone(),
+				b:this.sphere.geometry.vertices[i].clone(),
+				c:this.sphere.geometry.vertices[i].clone(),
+				d:this.sphere.geometry.vertices[i].clone(),
+				e:this.sphere.geometry.vertices[i].clone(),
+				f:this.sphere.geometry.vertices[i].clone()
+			};
+
+			this.plotters.push(plotter);
+			
 		}
 
+		this.setDistances();
 		return this;
 	};
 
 	this.parse = function() {
 
 		/*
-		this.count+=.01;
+		this.count+=.001;
 		var percentage = this.count*Math.PI*2;
 		this.rotationVector.x = Math.cos(percentage)*100;
-		this.rotationVector.y = Math.sin(percentage)*100;
+		this.rotationVector.z = Math.sin(percentage)*100;
 		*/
 
+		this.setDistances();
+		
+		var a,b,c,e,f;
 		var originParticle, activeParticle, tVector,rotationAmount;
 		var currentFoldAmount = DIPLO.Params.currentFoldAmount;
+		var smoothnessAmount = DIPLO.Params.smoothness;
+		var elasticityAmount = DIPLO.Params.elasticity;
 
 		this.vectorLine.geometry.vertices[0].copy(this.centerVector);
 		this.offsetRotationVector.add(this.rotationVector,this.centerVector);
@@ -139,27 +169,87 @@ DIPLO.Diplo3D = function(name) {
 		}
 
 
-d = ((a-b)*(ELASTICITY +tempFloat))+b;
-e = b-(b-c)-(b-d);
-f = e-((b-e)*SMOOTHNESS + tempFloat);
+		for(i=0;i<this.total;i++){
+			activeParticle = this.activePoints[i];
+			plotterParticle = this.plotterPoints[i];
+			a = this.plotters[i].a;
+			b = this.plotters[i].b;
+			c = this.plotters[i].c;
+			d = this.plotters[i].d;
+			e = this.plotters[i].e;
+			f = this.plotters[i].f;
+			elasticity = smoothnessAmount + .01;
+			smoothness = elasticityAmount*this.pointData[i].normal;
 
-a = b[i-1];
-b = e;
-c = f;
+			a = activeParticle.position.clone();
+			b.copy(e);
+			c.copy(f);
 
+			// d = ((a-b)*(ELASTICITY)) + b;
+			d.sub(a,b);
+			d.multiplyScalar(elasticity);
+			d.addSelf(b);
 
+			// e = b-(b-c)-(b-d);
+			// e = c+d-b;
+			e.add(c,d);
+			e.subSelf(b);
+
+			// f = e-((b-e)*SMOOTHNESS);
+			f.sub(b,e);
+			f.multiplyScalar(smoothness);
+			f.multiplyScalar(-1);
+			f.addSelf(e);
+
+			this.plotterPoints[i].position.copy(f);
+
+		}
+
+		for(i=0;i<this.total;i++){
+			this.sphere.geometry.vertices[i].copy(this.plotterPoints[i].position);
+		}
 
 		return this;
 	};
 
+	// SET DISTANCES DATA BASED ON PROXIMITY TO FOLD
+	this.setDistances = function(){
+		var distance;
+		var maxDistance = 0;
+		var minDistance = 10000;
+		var foldDampened = DIPLO.Params.foldDampened;
+
+		for(i=0;i<this.total;i++){
+			distance = this.originPoints[i].position.distanceTo(this.centerVector);
+			if(distance > maxDistance){
+				maxDistance = distance;
+			}
+			if(distance < minDistance){
+				minDistance = distance;
+			}
+			this.pointData[i].distance = distance;
+		}
+
+		for(i=0;i<this.total;i++){
+			this.pointData[i].maxDistance = maxDistance;
+			this.pointData[i].minDistance = minDistance;
+			this.pointData[i].normal = (this.pointData[i].distance - minDistance) / (maxDistance - minDistance) + foldDampened;
+			this.pointData[i].normal = clamp(0,1,this.pointData[i].normal);
+			this.pointData[i].normal -= foldDampened
+			this.pointData[i].normal *= 1/(1-foldDampened);
+			this.pointData[i].inverseNormal = 1 - this.pointData[i].normal;
+		}
+		return this;
+	};
+
+
 	this.draw = function() {
 		var i;
 
-		
 		for(i=0;i<this.total;i++){
-
 			this.activePoints[i].geometry.vertices.verticesNeedUpdate = true;
 			this.originPoints[i].geometry.vertices.verticesNeedUpdate = true;
+			this.plotterPoints[i].geometry.vertices.verticesNeedUpdate = true;
 		}
 		
 		this.vectorLine.geometry.verticesNeedUpdate = true;

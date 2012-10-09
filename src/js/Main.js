@@ -7,6 +7,7 @@
 var DIPLO = DIPLO || {};
 
 DIPLO.Params = {};
+DIPLO.Sliders = {};
 
 DIPLO.Main = function(name) {
 	var scope = this;
@@ -33,6 +34,7 @@ DIPLO.Main = function(name) {
 	// 3d
 	this.diplo3D = null;
 
+	this.count = 0;
 	this.init = function() {
 		this.traceFunction("init");
 		this.createListeners();
@@ -69,6 +71,9 @@ DIPLO.Main = function(name) {
 			speed: 4.0,
 			orbitSpeed: 0.0001,
 			currentFoldAmount: 0.0001,
+			elasticity: 0.75,
+			smoothness: 0.25,
+			foldDampened: .125,
 		};
 
 		this.gui = new dat.GUI({
@@ -76,7 +81,10 @@ DIPLO.Main = function(name) {
 			autoPlace: false
 		});
 		this.guiContainer = this.gui.domElement;
-		this.gui.add(DIPLO.Params, 'currentFoldAmount', -1.0, 1.0).step(0.0005);
+		DIPLO.Sliders.currentFoldAmount = this.gui.add(DIPLO.Params, 'currentFoldAmount', -1.0, 1.0).step(0.0005);
+		this.gui.add(DIPLO.Params, 'foldDampened', 0.0, .99).step(0.0005).name('foldDampened');
+		this.gui.add(DIPLO.Params, 'elasticity', 0.0, .99).step(0.0005).name('elasticity');
+		this.gui.add(DIPLO.Params, 'smoothness', 0.0, .99).step(0.0005).name('smoothness');
 		this.guiContainer = document.getElementById('guiContainer');
 		this.guiContainer.appendChild(this.gui.domElement);
 
@@ -85,6 +93,11 @@ DIPLO.Main = function(name) {
 	};
 
 	this.update = function() {
+
+		this.count+=.05;
+		var percentage = this.count*Math.PI*2;
+
+		DIPLO.Sliders.currentFoldAmount.setValue(Math.cos(percentage)*.025);
 
 		this.diplo3D.parse();
 		this.diplo3D.draw();
