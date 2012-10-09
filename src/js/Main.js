@@ -68,7 +68,8 @@ DIPLO.Main = function(name) {
 	this.createGui = function() {
 
 		DIPLO.Params = {
-			speed: 4.0,
+			speed: 0.025,
+			range: 0.1,
 			orbitSpeed: 0.0001,
 			currentFoldAmount: 0.0001,
 			elasticity: 0.75,
@@ -82,6 +83,8 @@ DIPLO.Main = function(name) {
 		});
 		this.guiContainer = this.gui.domElement;
 		DIPLO.Sliders.currentFoldAmount = this.gui.add(DIPLO.Params, 'currentFoldAmount', -1.0, 1.0).step(0.0005);
+		this.gui.add(DIPLO.Params, 'range', -0.25, 0.25).step(0.0001).name('range');
+		this.gui.add(DIPLO.Params, 'speed', -0.1, 0.1).step(0.0001).name('speed');
 		this.gui.add(DIPLO.Params, 'foldDampened', 0.0, .99).step(0.0005).name('foldDampened');
 		this.gui.add(DIPLO.Params, 'elasticity', 0.0, .99).step(0.0005).name('elasticity');
 		this.gui.add(DIPLO.Params, 'smoothness', 0.0, .99).step(0.0005).name('smoothness');
@@ -94,10 +97,10 @@ DIPLO.Main = function(name) {
 
 	this.update = function() {
 
-		this.count+=.05;
+		this.count+=DIPLO.Params.speed;
 		var percentage = this.count*Math.PI*2;
 
-		DIPLO.Sliders.currentFoldAmount.setValue(Math.cos(percentage)*.025);
+		DIPLO.Sliders.currentFoldAmount.setValue(Math.cos(percentage)*DIPLO.Params.range);
 
 		this.diplo3D.parse();
 		this.diplo3D.draw();
