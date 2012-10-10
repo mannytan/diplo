@@ -15,8 +15,11 @@ DIPLO.Diplo3D = function(name) {
 
 	// vars specific to Pinecone
 	this.sphere = null;
-	this.sphereSegmentsWidth = 30;
-	this.sphereSegmentsHeight = 15;
+	this.cheekLeft = null;
+	this.cheekRight = null;
+	this.sphere = null;
+	this.sphereSegmentsWidth = 20;
+	this.sphereSegmentsHeight = 10;
 
 	this.originPoints = null;
 	this.activePoints = null;
@@ -57,10 +60,10 @@ DIPLO.Diplo3D = function(name) {
 
 		// VECTOR
 		this.rotationVectorNormal = new THREE.Vector3();
-		this.rotationVector = new THREE.Vector3(Math.random(),Math.random(),Math.random());
+		this.rotationVector = new THREE.Vector3(0,4,10);
 		this.rotationVector.normalize();
 		this.rotationVector.multiplyScalar(100);
-		this.centerVector = new THREE.Vector3(Math.random()*90,Math.random()*90,0);
+		this.centerVector = new THREE.Vector3(80,0);
 		this.offsetRotationVector = new THREE.Vector3();
 
 		geometry = new THREE.Geometry();
@@ -76,12 +79,23 @@ DIPLO.Diplo3D = function(name) {
 		geometry =  new THREE.SphereGeometry( 100, this.sphereSegmentsWidth, this.sphereSegmentsHeight );
 		material = new THREE.MeshBasicMaterial({color:0x000000, opacity:0.125, wireframe:true});
 		this.sphere = new THREE.Mesh( geometry, material);
-		this.base.add(this.sphere);
-
+		// this.base.add(this.sphere);
 
 		//this.total = this.sphere.geometry.vertices.length;
-		
 		this.total = (this.sphereSegmentsWidth + 1) * (this.sphereSegmentsHeight + 1);
+
+		// CHEEK LEFT
+		geometry =  new THREE.SphereGeometry( 100, this.sphereSegmentsWidth, this.sphereSegmentsHeight );
+		material = new THREE.MeshBasicMaterial({color:0x000000, opacity:0.125, wireframe:true});
+		this.cheekLeft = new THREE.Mesh( geometry, material);
+		this.base.add(this.cheekLeft);
+
+		// CHEEK RIGHT
+		geometry =  new THREE.SphereGeometry( 100, this.sphereSegmentsWidth, this.sphereSegmentsHeight );
+		material = new THREE.MeshBasicMaterial({color:0x000000, opacity:0.125, wireframe:true});
+		this.cheekRight = new THREE.Mesh( geometry, material);
+		this.base.add(this.cheekRight);
+
 
 		// PARTICLES
 		for(i=0;i<this.total;i++){
@@ -132,12 +146,9 @@ DIPLO.Diplo3D = function(name) {
 
 	this.parse = function() {
 
-		/*
-		this.count+=.001;
-		var percentage = this.count*Math.PI*2;
-		this.rotationVector.x = Math.cos(percentage)*100;
-		this.rotationVector.z = Math.sin(percentage)*100;
-		*/
+	
+		this.rotationVector.y = DIPLO.Params.lift;
+		
 
 		this.setDistances();
 		
@@ -178,7 +189,7 @@ DIPLO.Diplo3D = function(name) {
 			d = this.plotters[i].d;
 			e = this.plotters[i].e;
 			f = this.plotters[i].f;
-			elasticity = smoothnessAmount + .01;
+			elasticity = smoothnessAmount*this.pointData[i].normal + .01;
 			smoothness = elasticityAmount*this.pointData[i].normal;
 
 			a = activeParticle.position.clone();
@@ -205,12 +216,40 @@ DIPLO.Diplo3D = function(name) {
 
 		}
 
+		var leftOffset = new THREE.Vector3(0,0,80);
+		var rightOffset = new THREE.Vector3(0,0,-80);
 		for(i=0;i<this.total;i++){
 			this.sphere.geometry.vertices[i].copy(this.plotterPoints[i].position);
+			this.cheekLeft.geometry.vertices[i].add(this.sphere.geometry.vertices[i], leftOffset);
+			this.cheekRight.geometry.vertices[i].copy(this.cheekLeft.geometry.vertices[i]);
+			this.cheekRight.geometry.vertices[i].z = -1*this.cheekLeft.geometry.vertices[i].z
 		}
 
 		return this;
 	};
+
+
+	this.draw = function() {
+		var i;
+
+		for(i=0;i<this.total;i++){
+			this.activePoints[i].geometry.vertices.verticesNeedUpdate = true;
+			this.originPoints[i].geometry.vertices.verticesNeedUpdate = true;
+			this.plotterPoints[i].geometry.vertices.verticesNeedUpdate = true;
+		}
+		
+		this.vectorLine.geometry.verticesNeedUpdate = true;
+
+		this.cheekLeft.geometry.verticesNeedUpdate = true;
+		this.cheekRight.geometry.verticesNeedUpdate = true;
+		this.sphere.geometry.verticesNeedUpdate = true;
+
+		this.trackball.update();
+		this.renderer.render(this.scene, this.camera);
+
+		return this;
+	};
+
 
 	// SET DISTANCES DATA BASED ON PROXIMITY TO FOLD
 	this.setDistances = function(){
@@ -239,28 +278,10 @@ DIPLO.Diplo3D = function(name) {
 			this.pointData[i].normal *= 1/(1-foldDampened);
 			this.pointData[i].inverseNormal = 1 - this.pointData[i].normal;
 		}
-		return this;
-	};
-
-
-	this.draw = function() {
-		var i;
-
-		for(i=0;i<this.total;i++){
-			this.activePoints[i].geometry.vertices.verticesNeedUpdate = true;
-			this.originPoints[i].geometry.vertices.verticesNeedUpdate = true;
-			this.plotterPoints[i].geometry.vertices.verticesNeedUpdate = true;
-		}
-		
-		this.vectorLine.geometry.verticesNeedUpdate = true;
-
-		this.sphere.geometry.verticesNeedUpdate = true;
-
-		this.trackball.update();
-		this.renderer.render(this.scene, this.camera);
 
 		return this;
 	};
+
 
 };
 

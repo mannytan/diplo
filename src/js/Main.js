@@ -68,21 +68,24 @@ DIPLO.Main = function(name) {
 	this.createGui = function() {
 
 		DIPLO.Params = {
-			speed: 0.025,
-			range: 0.1,
-			orbitSpeed: 0.0001,
 			currentFoldAmount: 0.0001,
-			elasticity: 0.75,
+			lift: 32,
+			range: 0.08,
+			speed: 0.07,
+			orbitSpeed: 0.0001,
+			foldDampened: .32,
+			elasticity: 0.66,
 			smoothness: 0.25,
-			foldDampened: .125,
 		};
 
 		this.gui = new dat.GUI({
 			width: this.guiWidth,
 			autoPlace: false
 		});
+
 		this.guiContainer = this.gui.domElement;
 		DIPLO.Sliders.currentFoldAmount = this.gui.add(DIPLO.Params, 'currentFoldAmount', -1.0, 1.0).step(0.0005);
+		this.gui.add(DIPLO.Params, 'lift', -200, 200).step(1).name('lift');
 		this.gui.add(DIPLO.Params, 'range', -0.25, 0.25).step(0.0001).name('range');
 		this.gui.add(DIPLO.Params, 'speed', -0.1, 0.1).step(0.0001).name('speed');
 		this.gui.add(DIPLO.Params, 'foldDampened', 0.0, .99).step(0.0005).name('foldDampened');
